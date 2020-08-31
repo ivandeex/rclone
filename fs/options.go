@@ -230,6 +230,28 @@ func (o *HashesOption) Mandatory() bool {
 	return false
 }
 
+// OptionResume defines a Put/Upload for doing resumes
+type OptionResume struct {
+	ID    string                                           // resume this ID if set
+	Pos   int64                                            // and resume from this position
+	SetID func(ID, hashName, hashState string) (err error) // called when and if the upload knows an ID for resumable upload
+}
+
+// Header formats the option as an http header
+func (o *OptionResume) Header() (key string, value string) {
+	return "", ""
+}
+
+// String formats the option into human readable form
+func (o *OptionResume) String() string {
+	return fmt.Sprintf("OptionResume(ID:%v, Pos:%v)", o.ID, o.Pos)
+}
+
+// Mandatory returns whether the option must be parsed or can be ignored
+func (o *OptionResume) Mandatory() bool {
+	return false
+}
+
 // NullOption defines an Option which does nothing
 type NullOption struct {
 }
