@@ -50,6 +50,7 @@ var (
 	// ErrorNotFoundInConfigFile is returned by NewFs if not found in config file
 	ErrorNotFoundInConfigFile        = errors.New("didn't find section in config file")
 	ErrorCantPurge                   = errors.New("can't purge directory")
+	ErrorCantResume                  = errors.New("can't resume file upload")
 	ErrorCantCopy                    = errors.New("can't copy object - incompatible remotes")
 	ErrorCantMove                    = errors.New("can't move object - incompatible remotes")
 	ErrorCantDirMove                 = errors.New("can't move directory - incompatible remotes")
@@ -559,6 +560,10 @@ type Features struct {
 	SlowModTime             bool // if calling ModTime() generally takes an extra transaction
 	SlowHash                bool // if calling Hash() generally takes an extra transaction
 
+	// Resume checks whether the (remote, ID) pair is valid and returns
+	// the point the file should be resumed from or an error.
+	Resume func(ctx context.Context, remote, ID, hashName, hashState string) (Pos int64, err error)
+
 	// Purge all files in the directory specified
 	//
 	// Implement this if you have a way of deleting all the files
@@ -761,6 +766,9 @@ func (ft *Features) DisableList(list []string) *Features {
 // optional interfaces.  It returns the original updated Features
 // struct passed in.
 func (ft *Features) Fill(ctx context.Context, f Fs) *Features {
+	if do, ok := f.(Resumer); ok {
+		ft.Resume = do.Resume
+	}
 	if do, ok := f.(Purger); ok {
 		ft.Purge = do.Purge
 	}
@@ -930,6 +938,13 @@ func (ft *Features) WrapsFs(f Fs, w Fs) *Features {
 		wFeatures.SetWrapper(f)
 	}
 	return ft
+}
+
+// Resumer is an optional interface for Fs
+type Resumer interface {
+	// Resume checks whether the (remote, ID) pair is valid and returns
+	// the point the file should be resumed from or an error.
+	Resume(ctx context.Context, remote, ID, hashName, hashState string) (Pos int64, err error)
 }
 
 // Purger is an optional interfaces for Fs
