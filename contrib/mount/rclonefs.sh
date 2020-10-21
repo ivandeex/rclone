@@ -6,6 +6,7 @@ mountpoint="$2"
 shift 2
 
 wait=yes
+bglog=no
 foreground=no
 rclone="/usr/bin/rclone"
 args=""
@@ -42,6 +43,8 @@ while getopts :o: opts; do
         wait=no ;;
       foreground)
         foreground=yes ;;
+      bglog)
+        bglog=yes ;;
       # fuse / rclone options
       allow_other|allow_root|uid=*|gid=*)
         args="$args --${param//_/-}" ;;
@@ -51,6 +54,21 @@ while getopts :o: opts; do
     esac
   done
 done
+
+if [ $bglog = yes ]; then
+  stamp=$(date '+%y%m%d-%H%M%S')
+  pid=$$
+  where=$(basename "$mountpoint")
+  logfile=/tmp/rclone-${stamp}-${pid}-${where}.log
+  touch "$logfile"
+  chmod 666 "$logfile"
+  # activate verbose background logging
+  export RCLONE_VERBOSE=3
+  export RCLONE_LOG_FORMAT=date,time,microseconds
+  export RCLONE_LOG_FILE=$logfile
+  # deactivate systemd log flavor in rclone
+  unset INVOCATION_ID
+fi
 
 # exec rclone (shellcheck note: args must stay unquoted)
 if [ $foreground = yes ]; then
