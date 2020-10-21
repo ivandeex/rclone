@@ -7,11 +7,11 @@ shift 2
 
 wait=yes
 foreground=no
-rclone="{{ lin_rclone_binary }}"
+rclone="/usr/bin/rclone"
 args=""
 
 export PATH=/bin:/usr/bin
-export RCLONE_CONFIG="{{ lin_rclone_config }}"
+export RCLONE_CONFIG="/etc/rclone/rclone.conf"
 export RCLONE_VERBOSE=0
 
 # Process -o parameters
