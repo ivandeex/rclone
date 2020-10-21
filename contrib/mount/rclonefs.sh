@@ -32,12 +32,12 @@ while getopts :o: opts; do
         continue ;;
       # wrapper options
       proxy=*)
-        export http_proxy=${param#proxy=}
-        export https_proxy=${param#proxy=} ;;
+        export http_proxy=${param#*=}
+        export https_proxy=${param#*=} ;;
       config=*)
-        export RCLONE_CONFIG=${param#config=} ;;
+        export RCLONE_CONFIG=${param#*=} ;;
       verbose=*)
-        export RCLONE_VERBOSE=${param#verbose=} ;;
+        export RCLONE_VERBOSE=${param#*=} ;;
       nowait)
         wait=no ;;
       foreground)
