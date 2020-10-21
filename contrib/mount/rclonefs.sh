@@ -60,8 +60,7 @@ else
   # NOTE: --daemon hangs under systemd automount, using `&`
   # shellcheck disable=SC2086
   "$rclone" mount $args "$remote" "$mountpoint" </dev/null >&/dev/null &
-  # WARNING: this check hangs for empty mounts!
-  while [ $wait = yes ] && [ "$(ls -lA "$mountpoint")" = 'total 0' ]; do
+  while [ $wait = yes ] && [ "$(grep -c " ${mountpoint%/} fuse.rclone " /proc/mounts)" = 0 ]; do
     sleep 0.5
   done
 fi
