@@ -152,6 +152,8 @@ func newSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 	} else {
 		s.ctx, s.cancel = context.WithCancel(ctx)
 	}
+	// Record source name in context for aware backends (see list() in Google Drive)
+	fi.SrcFsName = fsrc.Name()
 	// Input context - cancel this for graceful stop
 	s.inCtx, s.inCancel = context.WithCancel(s.ctx)
 	if s.noTraverse && s.deleteMode != fs.DeleteModeOff {

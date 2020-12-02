@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -17,8 +18,10 @@ import (
 	"github.com/pkg/errors"
 	_ "github.com/rclone/rclone/backend/local"
 	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/hash"
 	"github.com/rclone/rclone/fs/operations"
+	"github.com/rclone/rclone/fs/sync"
 	"github.com/rclone/rclone/fstest"
 	"github.com/rclone/rclone/fstest/fstests"
 	"github.com/rclone/rclone/lib/random"
@@ -461,6 +464,50 @@ func (f *Fs) InternalTestCopyID(t *testing.T) {
 	})
 }
 
+// TestIntegration/FsMkdir/FsPutFiles/Internal/AgeQuery
+func (f *Fs) InternalTestAgeQuery(t *testing.T) {
+	opt := &filter.Opt{}
+	err := opt.MaxAge.Set("1h")
+	assert.NoError(t, err)
+	flt, err := filter.NewFilter(opt)
+	assert.NoError(t, err)
+
+	defCtx := context.Background()
+	fltCtx := filter.ReplaceConfig(defCtx, flt)
+
+	subRemote := fmt.Sprintf("%s:%s/%s", f.Name(), f.Root(), "agequery-testdir")
+	subFsResult, err := fs.NewFs(defCtx, subRemote)
+	assert.NoError(t, err)
+	subFs, isDriveFs := subFsResult.(*Fs)
+	assert.True(t, isDriveFs)
+
+	tempDir1, err := ioutil.TempDir("", "rclone-drive-agequery1-test")
+	assert.NoError(t, err)
+	defer func() {
+		_ = os.RemoveAll(tempDir1)
+	}()
+	tempFs1, err := fs.NewFs(defCtx, tempDir1)
+	assert.NoError(t, err)
+
+	tempDir2, err := ioutil.TempDir("", "rclone-drive-agequery2-test")
+	assert.NoError(t, err)
+	defer func() {
+		_ = os.RemoveAll(tempDir2)
+	}()
+	tempFs2, err := fs.NewFs(defCtx, tempDir2)
+	assert.NoError(t, err)
+
+	file1 := fstest.Item{ModTime: time.Now(), Path: "agequery.txt"}
+	_, _ = fstests.PutTestContents(defCtx, t, tempFs1, &file1, "abcxyz", true)
+
+	err = sync.CopyDir(defCtx, subFs, tempFs1, false)
+	assert.NoError(t, err)
+
+	err = sync.CopyDir(fltCtx, tempFs2, subFs, false)
+	assert.NoError(t, err)
+	assert.Contains(t, subFs.lastQuery, "(modifiedTime >= '")
+}
+
 func (f *Fs) InternalTest(t *testing.T) {
 	// These tests all depend on each other so run them as nested tests
 	t.Run("DocumentImport", func(t *testing.T) {
@@ -478,6 +525,7 @@ func (f *Fs) InternalTest(t *testing.T) {
 	t.Run("Shortcuts", f.InternalTestShortcuts)
 	t.Run("UnTrash", f.InternalTestUnTrash)
 	t.Run("CopyID", f.InternalTestCopyID)
+	t.Run("AgeQuery", f.InternalTestAgeQuery)
 }
 
 var _ fstests.InternalTester = (*Fs)(nil)

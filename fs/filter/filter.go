@@ -111,6 +111,7 @@ type Filter struct {
 	Opt         Opt
 	ModTimeFrom time.Time
 	ModTimeTo   time.Time
+	SrcFsName   string // passed by newSyncCopyMove
 	fileRules   rules
 	dirRules    rules
 	files       FilesMap // files if filesFrom

@@ -32,6 +32,7 @@ import (
 	"github.com/rclone/rclone/fs/config/configmap"
 	"github.com/rclone/rclone/fs/config/configstruct"
 	"github.com/rclone/rclone/fs/config/obscure"
+	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/fserrors"
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/fspath"
@@ -609,6 +610,7 @@ type Fs struct {
 	client           *http.Client       // authorized client
 	rootFolderID     string             // the id of the root folder
 	dirCache         *dircache.DirCache // Map of directory path to directory id
+	lastQuery        string             // Last API query string for checking by unit tests
 	pacer            *fs.Pacer          // To pace the API calls
 	exportExtensions []string           // preferred extensions to download docs
 	importMimeTypes  []string           // MIME types to convert to docs
@@ -822,11 +824,24 @@ func (f *Fs) list(ctx context.Context, dirIDs []string, title string, directorie
 	if filesOnly {
 		query = append(query, fmt.Sprintf("mimeType!='%s'", driveFolderType))
 	}
-	list := f.svc.Files.List()
-	if len(query) > 0 {
-		list.Q(strings.Join(query, " and "))
-		// fmt.Printf("list Query = %q\n", query)
+
+	// Constrain query using last modified time and sync/copy/move flags, if this remote is the source.
+	fi := filter.GetConfig(ctx)
+	if fi.SrcFsName == f.name && !fi.ModTimeFrom.IsZero() {
+		query = append(query, fmt.Sprintf("(modifiedTime >= '%s' or mimeType = '%s')", fi.ModTimeFrom.Format("2006-01-02T15:04:05"), driveFolderType))
 	}
+	if fi.SrcFsName == f.name && !fi.ModTimeTo.IsZero() {
+		query = append(query, fmt.Sprintf("(modifiedTime <= '%s' or mimeType = '%s')", fi.ModTimeTo.Format("2006-01-02T15:04:05"), driveFolderType))
+	}
+
+	list := f.svc.Files.List()
+	queryString := strings.Join(query, " and ")
+	if queryString != "" {
+		list.Q(queryString)
+		// fs.Debugf(f, "list query: %q", queryString)
+	}
+	f.lastQuery = queryString
+
 	if f.opt.ListChunk > 0 {
 		list.PageSize(f.opt.ListChunk)
 	}
