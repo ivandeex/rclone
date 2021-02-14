@@ -375,7 +375,7 @@ func (f *Fs) Rmdir(ctx context.Context, dir string) (err error) {
 }
 
 // NewFs constructs an Fs from the path
-func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
+func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, error) {
 	// Parse config into Options struct
 	opt := new(Options)
 	err := configstruct.Set(m, opt)
@@ -396,22 +396,25 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	rootIsDir := strings.HasSuffix(root, "/")
 	root = strings.Trim(root, "/")
 
-	config := fs.Config
-	if opt.UserAgent != "" {
-		config.UserAgent = opt.UserAgent
-	}
-
 	f := &Fs{
 		name:  name,
 		opt:   *opt,
-		srv:   rest.NewClient(fshttp.NewClient(config)).SetErrorHandler(errorHandler).SetRoot(u.String()),
 		root:  root,
-		pacer: fs.NewPacer(pacer.NewDefault(pacer.MinSleep(minSleep), pacer.MaxSleep(maxSleep), pacer.DecayConstant(decayConstant))),
+		pacer: fs.NewPacer(ctx, pacer.NewDefault(pacer.MinSleep(minSleep), pacer.MaxSleep(maxSleep), pacer.DecayConstant(decayConstant))),
 	}
 
 	f.features = (&fs.Features{
 		CanHaveEmptyDirectories: true,
-	}).Fill(f)
+	}).Fill(ctx, f)
+
+	// Adjust client config and pass it attached to a context
+	cliCtx, cliCfg := fs.AddConfig(ctx)
+	if opt.UserAgent != "" {
+		cliCfg.UserAgent = opt.UserAgent
+	}
+	f.srv = rest.NewClient(fshttp.NewClient(cliCtx))
+	f.srv.SetRoot(u.String())
+	f.srv.SetErrorHandler(errorHandler)
 
 	if opt.APIPassword != "" {
 		opt.APIPassword, err = obscure.Reveal(opt.APIPassword)
@@ -428,7 +431,6 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		if f.root == "." {
 			f.root = ""
 		}
-		ctx := context.Background()
 		_, err := f.NewObject(ctx, remote)
 		if err != nil {
 			if errors.Cause(err) == fs.ErrorObjectNotFound || errors.Cause(err) == fs.ErrorNotAFile {
