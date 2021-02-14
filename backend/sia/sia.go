@@ -59,6 +59,11 @@ func init() {
 			Help:     config.ConfigEncodingHelp,
 			Advanced: true,
 			Default: encoder.EncodeInvalidUtf8 |
+				encoder.EncodeCtl |
+				encoder.EncodeDel |
+				encoder.EncodeHashPercent |
+				encoder.EncodeQuestion |
+				encoder.EncodeDot |
 				encoder.EncodeSlash,
 		},
 		}})
