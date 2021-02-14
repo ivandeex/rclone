@@ -464,11 +464,18 @@ func errorHandler(resp *http.Response) error {
 	errResponse.Status = resp.Status
 	errResponse.StatusCode = resp.StatusCode
 
-	if errResponse.StatusCode == 400 && errResponse.Message == "no file known with that path" {
+	msg := strings.Trim(errResponse.Message, "[]")
+	code := errResponse.StatusCode
+	switch {
+	case code == 400 && msg == "no file known with that path":
 		return fs.ErrorObjectNotFound
-	} else if errResponse.StatusCode == 500 && errResponse.Message == "failed to create directory: a siadir already exists at that location" {
+	case code == 400 && strings.HasPrefix(msg, "unable to get the fileinfo from the filesystem") && strings.HasSuffix(msg, "path does not exist"):
+		return fs.ErrorObjectNotFound
+	case code == 500 && strings.HasPrefix(msg, "failed to create directory") && strings.HasSuffix(msg, "a siadir already exists at that location"):
 		return fs.ErrorDirExists
-	} else if errResponse.StatusCode == 500 && strings.HasSuffix(errResponse.Message, ": no such file or directory") {
+	case code == 500 && strings.HasPrefix(msg, "failed to get directory contents") && strings.HasSuffix(msg, "path does not exist"):
+		return fs.ErrorDirNotFound
+	case code == 500 && strings.HasSuffix(msg, "no such file or directory"):
 		return fs.ErrorDirNotFound
 	}
 	return errResponse
