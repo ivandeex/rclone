@@ -956,9 +956,11 @@ func hashSum(ctx context.Context, ht hash.Type, downloadFlag bool, o fs.Object) 
 // HashLister does an md5sum equivalent for the hash type passed in
 // Updated to handle both standard hex encoding and base64
 // Updated to perform multiple hashes concurrently
-func HashLister(ctx context.Context, ht hash.Type, outputBase64 bool, downloadFlag bool, f fs.Fs, w io.Writer) error {
+func HashLister(ctx context.Context, ht hash.Type, outputBase64 bool, downloadFlag bool, f fs.Fs, w io.Writer, hashBuf HashSums) error {
 	concurrencyControl := make(chan struct{}, fs.GetConfig(ctx).Transfers)
+	hashWidth := hash.Width(ht)
 	var wg sync.WaitGroup
+	var hashMu sync.Mutex
 	err := ListFn(ctx, f, func(o fs.Object) {
 		wg.Add(1)
 		concurrencyControl <- struct{}{}
@@ -968,13 +970,19 @@ func HashLister(ctx context.Context, ht hash.Type, outputBase64 bool, downloadFl
 				wg.Done()
 			}()
 			sum, err := hashSum(ctx, ht, downloadFlag, o)
+			remote := o.Remote()
 			if outputBase64 && err == nil {
 				hexBytes, _ := hex.DecodeString(sum)
 				sum = base64.URLEncoding.EncodeToString(hexBytes)
 				width := base64.URLEncoding.EncodedLen(hash.Width(ht) / 2)
-				syncFprintf(w, "%*s  %s\n", width, sum, o.Remote())
+				syncFprintf(w, "%*s  %s\n", width, sum, remote)
 			} else {
-				syncFprintf(w, "%*s  %s\n", hash.Width(ht), sum, o.Remote())
+				syncFprintf(w, "%*s  %s\n", hashWidth, sum, remote)
+			}
+			if err == nil && hashBuf != nil {
+				hashMu.Lock()
+				hashBuf[remote] = sum
+				hashMu.Unlock()
 			}
 			if err != nil {
 				err = fs.CountError(err)
