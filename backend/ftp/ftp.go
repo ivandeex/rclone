@@ -117,6 +117,16 @@ Set to 0 to keep connections indefinitely.
 			Default:  fs.Duration(60 * time.Second),
 			Advanced: true,
 		}, {
+			Name:     "tls_cache_size",
+			Help:     "Set TLS session cache size",
+			Default:  0,
+			Advanced: true,
+		}, {
+			Name:     "disable_tls13",
+			Help:     "Disable TLS 1.3",
+			Default:  false,
+			Advanced: true,
+		}, {
 			Name:     config.ConfigEncoding,
 			Help:     config.ConfigEncodingHelp,
 			Advanced: true,
@@ -139,6 +149,8 @@ type Options struct {
 	Port              string               `config:"port"`
 	TLS               bool                 `config:"tls"`
 	ExplicitTLS       bool                 `config:"explicit_tls"`
+	TLSCacheSize      int                  `config:"tls_cache_size"`
+	DisableTLS13      bool                 `config:"disable_tls13"`
 	Concurrency       int                  `config:"concurrency"`
 	SkipVerifyTLSCert bool                 `config:"no_check_certificate"`
 	DisableEPSV       bool                 `config:"disable_epsv"`
@@ -426,6 +438,12 @@ func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (ff fs.Fs
 		tlsConfig = &tls.Config{
 			ServerName:         opt.Host,
 			InsecureSkipVerify: opt.SkipVerifyTLSCert,
+		}
+		if opt.TLSCacheSize > 0 {
+			tlsConfig.ClientSessionCache = tls.NewLRUClientSessionCache(opt.TLSCacheSize)
+		}
+		if opt.DisableTLS13 {
+			tlsConfig.MaxVersion = tls.VersionTLS12
 		}
 	}
 	u := protocol + path.Join(dialAddr+"/", root)
