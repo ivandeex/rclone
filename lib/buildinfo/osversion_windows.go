@@ -1,4 +1,4 @@
-// +build !openbsd !windows
+// +build windows
 
 package buildinfo
 

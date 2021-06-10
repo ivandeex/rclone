@@ -2,6 +2,8 @@ module github.com/rclone/rclone
 
 go 1.14
 
+replace github.com/shirou/gopsutil/v3 => github.com/ivandeex/gopsutil/v3 v3.21.5-openbsd-process-nocgo-iva02
+
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Azure/azure-pipeline-go v0.2.3
