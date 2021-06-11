@@ -36,8 +36,6 @@ type bisyncRun struct {
 
 // Bisync handles lock file, performs bisync run and checks exit status
 func Bisync(ctx context.Context, fs1, fs2 fs.Fs, optArg *Options) (err error) {
-	bilib.SetupHashAliases()
-
 	opt := *optArg // ensure that input is never changed
 	b := &bisyncRun{
 		fs1: fs1,

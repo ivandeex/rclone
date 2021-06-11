@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rclone/rclone/cmd/bisync/bilib"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/hash"
 	"github.com/rclone/rclone/fs/walk"
@@ -129,9 +128,7 @@ func (ls *fileList) save(ctx context.Context, listing string) error {
 
 	hashName := ""
 	if ls.hash != hash.None {
-		if hashName = bilib.HashString(ls.hash); hashName == "" {
-			return errors.New("internal error: cannot determine hash name")
-		}
+		hashName = ls.hash.String()
 	}
 
 	_, err = fmt.Fprintf(file, "%s %s\n", ListingHeader, time.Now().In(TZ).Format(timeFormat))
@@ -214,7 +211,7 @@ func (b *bisyncRun) loadListing(listing string) (*fileList, error) {
 		if hashErr == nil && hashName != "" {
 			if lastHashName == "" {
 				lastHashName = hashName
-				ls.hash, hashErr = bilib.HashSet(hashName)
+				hashErr = ls.hash.Set(hashName)
 			} else if hashName != lastHashName {
 				fs.Logf(listing, "Inconsistent hash type in line: %q", line)
 				continue
