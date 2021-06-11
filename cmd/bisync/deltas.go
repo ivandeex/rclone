@@ -4,8 +4,8 @@ package bisync
 
 import (
 	"context"
+	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/cmd/bisync/bilib"
@@ -161,7 +161,7 @@ func (b *bisyncRun) findDeltas(fctx context.Context, f fs.Fs, oldListing, newLis
 		// checkFiles is a small structure compared with the `now`, so we
 		// return it alone and let the full delta map be garbage collected.
 		for _, file := range now.list {
-			if strings.Contains(file, b.opt.CheckFilename) {
+			if filepath.Base(file) == b.opt.CheckFilename {
 				ds.checkFiles.Add(file)
 			}
 		}
