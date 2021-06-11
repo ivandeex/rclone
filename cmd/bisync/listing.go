@@ -254,8 +254,12 @@ func parseHash(str string) (string, string, error) {
 
 // makeListing will produce listing from directory tree and write it to a file
 func (b *bisyncRun) makeListing(ctx context.Context, f fs.Fs, listing string) (ls *fileList, err error) {
-	depth := fs.GetConfig(ctx).MaxDepth
-	hashType := f.Hashes().GetOne()
+	ci := fs.GetConfig(ctx)
+	depth := ci.MaxDepth
+	hashType := hash.None
+	if !ci.IgnoreChecksum {
+		hashType = f.Hashes().GetOne()
+	}
 	ls = newFileList()
 	ls.hash = hashType
 	var lock sync.Mutex
