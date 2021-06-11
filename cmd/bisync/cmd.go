@@ -140,14 +140,15 @@ var commandDefinition = &cobra.Command{
 			}
 		}
 
-		// FIXME Why runtime errors make rclone print usage?
-		command.SilenceUsage = true
-
-		err := Bisync(ctx, fs1, fs2, &opt)
-		if err == ErrBisyncAborted {
-			os.Exit(2)
-		}
-		return err
+		fs.Logf(nil, "bisync is EXPERIMENTAL. Don't use in production!")
+		cmd.Run(false, true, command, func() error {
+			err := Bisync(ctx, fs1, fs2, &opt)
+			if err == ErrBisyncAborted {
+				os.Exit(2)
+			}
+			return err
+		})
+		return nil
 	},
 }
 
