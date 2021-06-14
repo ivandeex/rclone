@@ -4,16 +4,34 @@ set -e
 
 NAME=Sia
 
-. $(dirname "$0")/docker.bash
+# shellcheck disable=SC1090
+. "$(dirname "$0")"/docker.bash
 
 start() {
-  docker run --rm -d --name $NAME \
-    --publish 127.0.0.1:9980:9980 \
-    nebulouslabs/siaantfarm
+    SIA_HOST=127.0.0.1
+    SIA_PORT=9980
+    SIA_CONN="${SIA_HOST}:${SIA_PORT}"
 
-    echo type=sia
-    echo endpoint=http://$(docker_ip):9980/
-    echo _connect=$(docker_ip):9980
+    # start antfarm with the default config
+    docker run --rm -d --name "$NAME" \
+            -p "${SIA_CONN}:${SIA_PORT}" \
+            nebulouslabs/siaantfarm:latest
+
+    # confirm backend type in the generated rclone.conf
+    echo "type=sia"
+    # override keys in the Sia section of generated rclone.conf
+    echo "api_url=http://${SIA_CONN}/"
+    # hint test harness where to probe for connection
+    echo "_connect=${SIA_CONN}"
 }
 
-. $(dirname "$0")/run.bash
+stop() {
+    if status ; then
+        docker logs "$NAME" >> sia-test.log 2>&1
+        docker kill "$NAME"
+        echo "${NAME} stopped"
+    fi
+}
+
+# shellcheck disable=SC1090
+. "$(dirname "$0")"/run.bash
