@@ -135,11 +135,22 @@ func (o *Object) SetModTime(ctx context.Context, t time.Time) error {
 
 // Open an object for read
 func (o *Object) Open(ctx context.Context, options ...fs.OpenOption) (in io.ReadCloser, err error) {
+	var optionsFixed []fs.OpenOption
+	for _, opt := range options {
+		if optRange, ok := opt.(*fs.RangeOption); ok {
+			// Drop the range if file is empty
+			if o.Size() == 0 && optRange.Start == 0 && optRange.End > 0 {
+				continue
+			}
+		}
+		optionsFixed = append(optionsFixed, opt)
+	}
+
 	var resp *http.Response
 	opts := rest.Opts{
 		Method:  "GET",
 		Path:    path.Join("/renter/stream/", o.fs.root, o.fs.opt.Enc.FromStandardPath(o.remote)),
-		Options: options,
+		Options: optionsFixed,
 	}
 	err = o.fs.pacer.Call(func() (bool, error) {
 		resp, err = o.fs.srv.Call(ctx, &opts)
