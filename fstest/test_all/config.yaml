@@ -303,6 +303,8 @@ backends:
  - backend:  "sia"
    remote:   "TestSia:"
    fastlist: false
+   ignore:
+     - TestIntegration/FsMkdir/FsPutError
  - backend:  "mailru"
    remote:   "TestMailru:"
    subdir:   false
