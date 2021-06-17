@@ -325,7 +325,26 @@ func (f *Fs) Put(ctx context.Context, in io.Reader, src fs.ObjectInfo, options .
 		size:    src.Size(),
 	}
 
-	return o, o.Update(ctx, in, src, options...)
+	err := o.Update(ctx, in, src, options...)
+	if err == nil {
+		return o, nil
+	}
+
+	// Cleanup failed upload
+	for i := 0; i < 5; i++ {
+		cleanObj, cleanErr := f.NewObject(ctx, src.Remote())
+		if cleanErr == nil {
+			cleanErr = cleanObj.Remove(ctx)
+		}
+		if cleanErr == nil {
+			break
+		} else if cleanErr != fs.ErrorObjectNotFound {
+			fs.Logf(f, "%q: cleanup failed upload: %v", src.Remote(), cleanErr)
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return nil, err
 }
 
 // PutStream the object into the remote siad via uploadstream
