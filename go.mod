@@ -2,6 +2,9 @@ module github.com/rclone/rclone
 
 go 1.14
 
+replace github.com/jlaffaye/ftp => github.com/ivandeex/ftp v0.0.0-20210508132049-088224ad5c5a
+//replace github.com/jlaffaye/ftp => ../devel/jlaffaye-ftp
+
 replace goftp.io/server => github.com/ivandeex/goftp-server v0.4.2-0.20210428003143-e72e66b38892
 
 require (

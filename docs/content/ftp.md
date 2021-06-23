@@ -223,6 +223,15 @@ Disable using MLSD even if server advertises support
 - Type:        bool
 - Default:     false
 
+#### --ftp-writing-mdtm
+
+Use MDTM to set modification time (non-standard)
+
+- Config:      writing_mdtm
+- Env Var:     RCLONE_FTP_WRITING_MDTM
+- Type:        bool
+- Default:     false
+
 #### --ftp-idle-timeout
 
 Max time before closing idle connections
