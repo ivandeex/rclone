@@ -101,6 +101,11 @@ to an encrypted one. Cannot be used in combination with implicit FTP.`,
 			Default:  false,
 			Advanced: true,
 		}, {
+			Name:     "writing_mdtm",
+			Help:     "Use MDTM to set modification time (non-standard)",
+			Default:  false,
+			Advanced: true,
+		}, {
 			Name:    "idle_timeout",
 			Default: fs.Duration(60 * time.Second),
 			Help: `Max time before closing idle connections
@@ -150,6 +155,7 @@ type Options struct {
 	SkipVerifyTLSCert bool                 `config:"no_check_certificate"`
 	DisableEPSV       bool                 `config:"disable_epsv"`
 	DisableMLSD       bool                 `config:"disable_mlsd"`
+	WritingMDTM       bool                 `config:"writing_mdtm"`
 	IdleTimeout       fs.Duration          `config:"idle_timeout"`
 	CloseTimeout      fs.Duration          `config:"close_timeout"`
 	Enc               encoder.MultiEncoder `config:"encoding"`
@@ -172,6 +178,7 @@ type Fs struct {
 	tokens   *pacer.TokenDispenser
 	tlsConf  *tls.Config
 	pacer    *fs.Pacer // pacer for FTP connections
+	canTouch bool
 }
 
 // Object describes an FTP file
@@ -296,6 +303,9 @@ func (f *Fs) ftpConnection(ctx context.Context) (c *ftp.ServerConn, err error) {
 	}
 	if f.opt.DisableMLSD {
 		ftpConfig = append(ftpConfig, ftp.DialWithDisabledMLSD(true))
+	}
+	if f.opt.WritingMDTM {
+		ftpConfig = append(ftpConfig, ftp.DialWithWritingMDTM(true))
 	}
 	if f.ci.Dump&(fs.DumpHeaders|fs.DumpBodies|fs.DumpRequests|fs.DumpResponses) != 0 {
 		ftpConfig = append(ftpConfig, ftp.DialWithDebugOutput(&debugLog{auth: f.ci.Dump&fs.DumpAuth != 0}))
@@ -462,6 +472,7 @@ func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (ff fs.Fs
 	if err != nil {
 		return nil, errors.Wrap(err, "NewFs")
 	}
+	f.canTouch = c.ModTimeSupported()
 	f.putFtpConnection(&c, nil)
 	if root != "" {
 		// Check to see if the root actually an existing file
@@ -696,6 +707,9 @@ func (f *Fs) Hashes() hash.Set {
 
 // Precision shows Modified Time not supported
 func (f *Fs) Precision() time.Duration {
+	if f.canTouch {
+		return time.Second
+	}
 	return fs.ModTimeNotSupported
 }
 
@@ -937,7 +951,20 @@ func (o *Object) ModTime(ctx context.Context) time.Time {
 
 // SetModTime sets the modification time of the object
 func (o *Object) SetModTime(ctx context.Context, modTime time.Time) error {
-	return nil
+	if !o.fs.canTouch {
+		return nil
+	}
+	c, err := o.fs.getFtpConnection(ctx)
+	if err != nil {
+		return err
+	}
+	path := path.Join(o.fs.root, o.remote)
+	err = c.SetTime(o.fs.opt.Enc.FromStandardPath(path), modTime.In(time.UTC))
+	if err == nil && o.info != nil {
+		o.info.ModTime = modTime
+	}
+	o.fs.putFtpConnection(&c, err)
+	return err
 }
 
 // Storable returns a boolean as to whether this object is storable
@@ -1074,6 +1101,9 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		return errors.Wrap(err, "update stor")
 	}
 	o.fs.putFtpConnection(&c, nil)
+	if err = o.SetModTime(ctx, src.ModTime(ctx)); err != nil {
+		return errors.Wrap(err, "SetModTime")
+	}
 	o.info, err = o.fs.getInfo(ctx, path)
 	if err != nil {
 		return errors.Wrap(err, "update getinfo")
