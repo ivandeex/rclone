@@ -300,6 +300,18 @@ backends:
  - backend:  "sharefile"
    remote:   "TestSharefile:"
    fastlist: false
+ - backend:  "sia"
+   remote:   "TestSia:"
+   fastlist: false
+   ignore:
+     - TestIntegration/FsMkdir/FsPutError
+     - TestIntegration/FsMkdir/FsPutZeroLength
+     - TestIntegration/FsMkdir/FsPutFiles/FsPutStream/0
+     - TestRWFileHandleWriteNoWrite
+     - TestVFSOpenFile
+     - TestWriteFileHandleMethods
+     - TestWriteFileHandleRelease
+     - TestFileReadAtZeroLength
  - backend:  "mailru"
    remote:   "TestMailru:"
    subdir:   false

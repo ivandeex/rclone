@@ -2,6 +2,11 @@ module github.com/rclone/rclone
 
 go 1.14
 
+replace github.com/jlaffaye/ftp => github.com/ivandeex/ftp v0.0.0-20210508132049-088224ad5c5a
+//replace github.com/jlaffaye/ftp => ../devel/jlaffaye-ftp
+
+replace goftp.io/server => github.com/ivandeex/goftp-server v0.4.2-0.20210428003143-e72e66b38892
+
 require (
 	bazil.org/fuse v0.0.0-20200524192727-fb710f7dfd05
 	github.com/Azure/azure-pipeline-go v0.2.3
@@ -49,6 +54,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.1-0.20210424083437-2b80967078b8
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.20.0 // indirect
 	github.com/putdotio/go-putio/putio v0.0.0-20200123120452-16d982cac2b8

@@ -1274,6 +1274,9 @@ func (o *Object) Hash(ctx context.Context, r hash.Type) (string, error) {
 	if o.fs.opt.PathOverride != "" {
 		escapedPath = shellEscape(path.Join(o.fs.opt.PathOverride, o.remote))
 	}
+	if regexp.MustCompile(`/[a-zA-Z]:/`).MatchString(escapedPath) {
+		escapedPath = strings.ReplaceAll(escapedPath[1:], "/", "\\")
+	}
 	err = session.Run(hashCmd + " " + escapedPath)
 	fs.Debugf(nil, "sftp cmd = %s", escapedPath)
 	if err != nil {

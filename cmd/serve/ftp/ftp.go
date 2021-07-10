@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/cmd"
@@ -468,6 +469,24 @@ func (d *Driver) PutFile(path string, data io.Reader, appendData bool) (n int64,
 	return bytes, nil
 }
 
+//SetTime sets file modified time
+func (d *Driver) SetTime(path string, modTime time.Time) (err error) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	node, err := d.vfs.Stat(path)
+	if err != nil {
+		return err
+	}
+	if !node.IsFile() {
+		return errors.New("Not a file")
+	}
+	err = node.SetModTime(modTime)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //FileInfo struct to hold file info for ftp server
 type FileInfo struct {
 	os.FileInfo
@@ -480,6 +499,16 @@ type FileInfo struct {
 //Mode return mode of file.
 func (f *FileInfo) Mode() os.FileMode {
 	return f.mode
+}
+
+//UID return file uid
+func (f *FileInfo) UID() int {
+	return int(f.owner)
+}
+
+//GID return file gid
+func (f *FileInfo) GID() int {
+	return int(f.group)
 }
 
 //Owner return owner of file. Try to find the username if possible
@@ -500,6 +529,11 @@ func (f *FileInfo) Group() string {
 		return str //Group not found default to numerical value
 	}
 	return g.Name
+}
+
+//ModTime return the file modified time as UTC
+func (f *FileInfo) ModTime() time.Time {
+	return f.FileInfo.ModTime().In(time.UTC)
 }
 
 func closeIO(path string, c io.Closer) {

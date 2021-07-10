@@ -192,7 +192,7 @@ func TestHashSums(t *testing.T) {
 	// MD5 Sum without download
 
 	var buf bytes.Buffer
-	err := operations.HashLister(ctx, hash.MD5, false, true, r.Fremote, &buf)
+	err := operations.HashLister(ctx, hash.MD5, false, true, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res := buf.String()
 	if !strings.Contains(res, "336d5ebc5436534e61d16e63ddfca327  empty space\n") &&
@@ -209,7 +209,7 @@ func TestHashSums(t *testing.T) {
 	// MD5 Sum with download
 
 	buf.Reset()
-	err = operations.HashLister(ctx, hash.MD5, false, true, r.Fremote, &buf)
+	err = operations.HashLister(ctx, hash.MD5, false, true, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res = buf.String()
 	if !strings.Contains(res, "336d5ebc5436534e61d16e63ddfca327  empty space\n") &&
@@ -226,7 +226,7 @@ func TestHashSums(t *testing.T) {
 	// SHA1 Sum without download
 
 	buf.Reset()
-	err = operations.HashLister(ctx, hash.SHA1, false, false, r.Fremote, &buf)
+	err = operations.HashLister(ctx, hash.SHA1, false, false, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res = buf.String()
 	if !strings.Contains(res, "3bc15c8aae3e4124dd409035f32ea2fd6835efc9  empty space\n") &&
@@ -243,7 +243,7 @@ func TestHashSums(t *testing.T) {
 	// SHA1 Sum with download
 
 	buf.Reset()
-	err = operations.HashLister(ctx, hash.SHA1, false, true, r.Fremote, &buf)
+	err = operations.HashLister(ctx, hash.SHA1, false, true, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res = buf.String()
 	if !strings.Contains(res, "3bc15c8aae3e4124dd409035f32ea2fd6835efc9  empty space\n") &&
@@ -263,7 +263,7 @@ func TestHashSums(t *testing.T) {
 	var ht hash.Type
 	err = ht.Set("QuickXorHash")
 	require.NoError(t, err)
-	err = operations.HashLister(ctx, ht, false, false, r.Fremote, &buf)
+	err = operations.HashLister(ctx, ht, false, false, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res = buf.String()
 	if !strings.Contains(res, "2d00000000000000000000000100000000000000  empty space\n") &&
@@ -281,7 +281,7 @@ func TestHashSums(t *testing.T) {
 
 	buf.Reset()
 	require.NoError(t, err)
-	err = operations.HashLister(ctx, ht, false, true, r.Fremote, &buf)
+	err = operations.HashLister(ctx, ht, false, true, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res = buf.String()
 	if !strings.Contains(res, "2d00000000000000000000000100000000000000  empty space\n") &&
@@ -298,7 +298,7 @@ func TestHashSums(t *testing.T) {
 	// QuickXorHash Sum with Base64 Encoded, without download
 
 	buf.Reset()
-	err = operations.HashLister(ctx, ht, true, false, r.Fremote, &buf)
+	err = operations.HashLister(ctx, ht, true, false, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res = buf.String()
 	if !strings.Contains(res, "LQAAAAAAAAAAAAAAAQAAAAAAAAA=  empty space\n") &&
@@ -315,7 +315,7 @@ func TestHashSums(t *testing.T) {
 	// QuickXorHash Sum with Base64 Encoded and download
 
 	buf.Reset()
-	err = operations.HashLister(ctx, ht, true, true, r.Fremote, &buf)
+	err = operations.HashLister(ctx, ht, true, true, r.Fremote, &buf, nil)
 	require.NoError(t, err)
 	res = buf.String()
 	if !strings.Contains(res, "LQAAAAAAAAAAAAAAAQAAAAAAAAA=  empty space\n") &&
